@@ -1,0 +1,149 @@
+configuration {
+    modi: "run,drun,window";
+    show-icons: true;
+    terminal: "alacritty";
+    drun-display-format: "{icon} {name}";
+    location: 0;
+    disable-history: false;
+    hide-scrollbar: true;
+    display-drun: "  Apps ";
+}
+
+* {
+    background:         #1e1e24;
+    background-focus:   #2a2a33;
+    background-special: #343445;
+    border-col:         #2a2a33;
+    border-focus:       #3a3a48;
+    border-special:     #444455;
+    foreground:         #e6e6e6;
+    foreground-muted:   #a0a0a0;
+
+    background-color:   transparent;
+    text-color:         @foreground-muted;
+    border-radius:      0px;
+    font:               "JetBrainsMono Nerd Font 10";
+}
+
+window {
+    background-color: #1e1e24;
+    text-color:       @foreground-muted;
+    padding:          20px;
+    width:            600px;
+    border:           2px;
+    border-color:     @border-col;
+    border-radius:    20px;
+    transparency:     "real";     /* <-- key fix */
+}
+
+mainbox {
+    spacing:          10px;
+    background-color: transparent;
+    children:         [ inputbar, mode-switcher, listview ];
+}
+
+inputbar {
+    spacing:          10px;
+    background-color: transparent;
+    children:         [ prompt, entry ];
+}
+
+prompt {
+    padding:          10px;
+    background-color: @background-special;
+    border:           1px;
+    border-color:     @border-special;
+    border-radius:    8px;
+    text-color:       @foreground;
+}
+
+entry {
+    padding:           10px;
+    border:            1px;
+    border-color:      @border-col;
+    border-radius:     8px;
+    text-color:        @foreground;
+    placeholder:       "Search...";
+    placeholder-color: @foreground-muted;
+}
+
+listview {
+    columns:          2;
+    lines:            5;
+    scrollbar:        false;
+    cycle:            false;
+    dynamic:          false;
+    layout:           vertical;
+    fixed-columns:    false;
+    border:           0px;
+    border-color:     transparent;
+    background-color: transparent;
+}
+
+element {
+    padding:          10px;
+    spacing:          10px;
+    border:           1px;
+    border-color:     transparent;
+    background-color: @background;
+    border-radius:    8px;
+}
+
+element normal.normal {
+    background-color: @background;
+    text-color:       @foreground-muted;
+}
+
+element selected.normal {
+    background-color: @background-focus;
+    border:           1px;
+    border-color:     @border-focus;
+    text-color:       @foreground;
+    border-radius:    8px;
+}
+
+element alternate.normal {
+    background-color: @background;
+    text-color:       @foreground-muted;
+}
+
+element-icon alternate.normal {
+    background-color: @background;
+}
+
+element-text alternate.normal {
+    background-color: @background;
+    text-color:       @foreground-muted;
+}
+
+element-text {
+    background-color: inherit;
+    text-color:       inherit;
+    vertical-align:   0.5;
+}
+
+element-icon {
+    size:             24px;
+    background-color: inherit;
+}
+
+mode-switcher {
+    padding:          3px;
+    border:           1px;
+    border-color:     @border-special;
+    border-radius:    8px;
+    background-color: transparent;
+}
+
+button {
+    padding:    8px;
+    text-color: @foreground-muted;
+}
+
+button selected {
+    background-color: @background-special;
+    border:           1px;
+    border-color:     @border-special;
+    border-radius:    6px;
+    text-color:       @foreground;
+}

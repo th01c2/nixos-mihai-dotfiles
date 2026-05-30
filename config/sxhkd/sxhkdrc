@@ -1,0 +1,29 @@
+bspc monitor -d 1 2 3 4 5 6 7 8 9 10
+
+super + shift + t
+    alacritty
+
+super + shift + q
+    bspc node -c
+
+super + shift + e
+    bspc quit
+
+super + d
+    rofi -show drun
+
+# reload bspwm
+super + shift + r
+    bspc wm -r
+
+# launch file manager
+super + e
+    thunar
+
+# Focus desktop 1-10
+super + {1-9,0}
+    bspc desktop -f '^{1-9,10}'
+
+# Send window to desktop 1-10
+super + shift + {1-9,0}
+    bspc node -d '^{1-9,10}'
