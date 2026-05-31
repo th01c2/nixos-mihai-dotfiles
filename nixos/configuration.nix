@@ -183,6 +183,7 @@
     curl
     jq
     xclip
+    maim
     firefox
     discord
     vesktop

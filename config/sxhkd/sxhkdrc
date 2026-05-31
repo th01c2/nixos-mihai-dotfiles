@@ -27,3 +27,7 @@ super + {1-9,0}
 # Send window to desktop 1-10
 super + shift + {1-9,0}
     bspc node -d '^{1-9,10}'
+
+# Screenshot – select area (saved to ~/Screenshots + clipboard)
+super + Print
+    mkdir -p ~/Screenshots && maim -s | tee ~/Screenshots/screenshot_$(date +%Y-%m-%d_%H-%M-%S).png | xclip -selection clipboard -t image/png
