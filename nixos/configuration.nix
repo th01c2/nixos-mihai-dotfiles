@@ -26,7 +26,7 @@
 
     supportedFilesystems = [ "fuse" ];
     kernelPackages = pkgs.linuxPackages_latest;
-    kernelModules = [ "v4l2loopback" "tun" "amneziawg" ];
+    kernelModules = [ "v4l2loopback" "tun" "amneziawg" "uinput" ];
     extraModulePackages = [
       config.boot.kernelPackages.v4l2loopback
       config.boot.kernelPackages.amneziawg
@@ -72,29 +72,43 @@
     LIBVA_DRIVER_NAME = "nvidia";
   };
 
-  # --- WINDOW MANAGER & LOGIN ---
+  # --- WINDOW MANAGER, DESKTOP & LOGIN ---
   services.xserver.enable = true;
   services.xserver.windowManager.bspwm.enable = true;
+
+  # KDE Plasma desktop for olesea
+  services.desktopManager.plasma6.enable = true;
+
   services.xserver.displayManager.startx.enable = true;
 
-  services.greetd = {
+  # greetd display manager with tuigreet — auto-routes sessions by username
+  services.greetd = let
+    desktops = config.services.displayManager.sessionData.desktops;
+    session-router = pkgs.writeShellScript "session-router" ''
+      case "$USER" in
+        olesea)
+          exec ${pkgs.kdePackages.plasma-workspace}/bin/startplasma-wayland
+          ;;
+        *)
+          exec ${pkgs.xorg.xinit}/bin/startx ${pkgs.bspwm}/bin/bspwm -- :0 vt"$XDG_VTNR"
+          ;;
+      esac
+    '';
+  in {
     enable = true;
-    settings = {
-      initial_session = {
-        command = "startx ${pkgs.bspwm}/bin/bspwm -- vt1";
-        user = "mihai";
-      };
-      default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --cmd \"startx ${pkgs.bspwm}/bin/bspwm -- vt1\"";
-        user = "greeter";
-      };
+    settings.default_session = {
+      command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --user-menu --cmd ${session-router}";
+      user = "greeter";
     };
   };
 
   # --- XDG PORTAL ---
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    extraPortals = [
+      pkgs.xdg-desktop-portal-gtk
+      pkgs.kdePackages.xdg-desktop-portal-kde
+    ];
     config.common.default = [ "gtk" ];
   };
  
@@ -121,23 +135,83 @@
     };
   };
 
+
   systemd.network.wait-online.enable = true;
   
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 22 5900 ];
-    allowedUDPPorts = [ 41641 51820 ];
+    allowedTCPPorts = [ 22 5900 47984 47989 47990 48010 ];
+    allowedUDPPorts = [ 41641 51820 47998 47999 48000 48002 48010 ];
     trustedInterfaces = [ "wg0" "tailscale0" ];
   };
 
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
-    trusted-users = [ "root" "mihai" ];
+    trusted-users = [ "root" "mihai" "olesea" ];
   };
 
   users.users.mihai = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "video" "dialout" ];
+    extraGroups = [ "wheel" "networkmanager" "video" "dialout" "uinput" "render" ];
+    packages = with pkgs; [
+      inputs.prismlauncher-cracked.packages.${pkgs.stdenv.hostPlatform.system}.prismlauncher
+      picom
+      bspwm
+      sxhkd
+      dmenu
+      rofi
+      polybarFull
+      feh
+      xinit
+      xclip
+      maim
+      alacritty
+      gruvbox-plus-icons
+      discord
+      vesktop
+      telegram-desktop
+      steam
+      mpv
+      xclicker
+      android-tools
+
+      # SSH session launcher
+      (pkgs.writeShellScriptBin "start-sunshine" ''
+        echo "Killing tuigreet..."
+        sudo systemctl stop greetd
+        sleep 1
+        echo "Starting Mihai's bspwm session..."
+        sudo systemd-run --unit=mihai-ssh-session --uid=mihai --property=PAMName=login --property=TTYPath=/dev/tty7 --property=StandardInput=tty startx /run/current-system/sw/share/xsessions/none+bspwm.desktop -- vt7
+        echo "Sunshine is now active on the host!"
+      '')
+    ];
+  };
+
+  users.users.olesea = {
+    isNormalUser = true;
+    initialPassword = "1234";
+    extraGroups = [ "wheel" "networkmanager" "video" ];
+    packages = with pkgs; [
+      chromium
+    ];
+  };
+
+  # --- SUNSHINE HOST ---
+  services.sunshine = {
+    enable = true;
+    autoStart = true;
+    capSysAdmin = true;
+    openFirewall = true;
+    package = pkgs.sunshine.override { cudaSupport = true; };
+  };
+  hardware.uinput.enable = true;
+
+  # Sunshine needs DISPLAY and XAUTHORITY to capture the X11 session
+  systemd.user.services.sunshine.serviceConfig = {
+    Environment = [
+      "DISPLAY=:0"
+      "XAUTHORITY=/home/mihai/.Xauthority"
+    ];
   };
 
   # --- SERVICES ---
@@ -173,71 +247,59 @@
     wireplumber.enable = true;
   };
 
-  # --- PACKAGES ---
+  # --- SYSTEM-WIDE PACKAGES (shared by all users) ---
   environment.systemPackages = with pkgs; [
-    inputs.prismlauncher-cracked.packages.${pkgs.stdenv.hostPlatform.system}.prismlauncher
-    picom
+    file-roller
     p7zip
     git
     wget
     curl
     jq
-    xclip
-    maim
     firefox
-    discord
-    vesktop
-    alacritty
-    bspwm
-    sxhkd
-    dmenu
-    telegram-desktop
     ffmpeg
     unrar
     zip
     unzip
     flatpak
-    steam
-    mpv
-    xclicker
     nvidia-vaapi-driver
     nvtopPackages.nvidia
     python3
-    android-tools
-    xinit
-    rofi
-    gruvbox-plus-icons
-    feh
-    x11vnc
-    polybarFull
     pavucontrol
     amneziawg-tools
+    (pkgs.writeShellScriptBin "vpn-toggle" ''
+      if ${pkgs.iproute2}/bin/ip rule | grep -q 'lookup 51820'; then
+        sudo ${pkgs.iproute2}/bin/ip rule del table 51820
+        sudo ${pkgs.iproute2}/bin/ip rule del table main suppress_prefixlength 0
+        ${pkgs.libnotify}/bin/notify-send "VPN Routing Disabled" "Internet is now using the local network." || true
+      else
+        sudo ${pkgs.iproute2}/bin/ip rule add not fwmark 51820 table 51820
+        sudo ${pkgs.iproute2}/bin/ip rule add table main suppress_prefixlength 0
+        ${pkgs.libnotify}/bin/notify-send "VPN Routing Enabled" "Internet is routed through the VPN." || true
+      fi
+    '')
+    x11vnc
+  ];
+
+  security.sudo.extraRules = [
+    {
+      users = [ "mihai" ];
+      commands = [
+        { command = "${pkgs.iproute2}/bin/ip"; options = [ "NOPASSWD" ]; }
+      ];
+    }
   ];
 
   # --- PROGRAMS ---
-  programs.thunar = {
-    enable = true;
-    plugins = with pkgs; [
-      thunar-archive-plugin
-      thunar-volman
-    ];
+  programs = {
+     thunar = {
+        enable = true;
+        plugins = with pkgs.xfce; [ thunar-archive-plugin thunar-volman ];
+     };
   };
-
   programs.fuse.userAllowOther = true;
 
   # --- SYSTEMD SERVICES ---
-  systemd.services.x11vnc = {
-    description = "x11vnc server";
-    after = [ "graphical.target" ];
-    wantedBy = [ "graphical.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.x11vnc}/bin/x11vnc -display :0 -auth /home/mihai/.Xauthority -rfbport 5900 -forever -shared -nopw";
-      Restart = "on-failure";
-      RestartSec = "5s";
-      User = "mihai";
-      Environment = "PATH=${pkgs.gawk}/bin:${pkgs.nettools}/bin";
-    };
-  };
+  # The VNC service has been completely removed as requested since tuigreet cannot be captured over VNC.
 
   # --- USER SERVICES ---
   systemd.user.services.audiosource = {
