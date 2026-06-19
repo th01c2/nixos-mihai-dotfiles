@@ -90,7 +90,8 @@
           exec ${pkgs.kdePackages.plasma-workspace}/bin/startplasma-wayland
           ;;
         *)
-          exec ${pkgs.xorg.xinit}/bin/startx ${pkgs.bspwm}/bin/bspwm -- :0 vt"$XDG_VTNR"
+          export XAUTHORITY="$HOME/.Xauthority"
+          exec ${pkgs.xorg.xinit}/bin/startx ${pkgs.bspwm}/bin/bspwm -- :0 vt"$XDG_VTNR" -auth "$HOME/.Xauthority"
           ;;
       esac
     '';
@@ -199,19 +200,28 @@
   # --- SUNSHINE HOST ---
   services.sunshine = {
     enable = true;
-    autoStart = true;
+    autoStart = false; # Disabled user service to use custom system service below
     capSysAdmin = true;
     openFirewall = true;
     package = pkgs.sunshine.override { cudaSupport = true; };
   };
   hardware.uinput.enable = true;
 
-  # Sunshine needs DISPLAY and XAUTHORITY to capture the X11 session
-  systemd.user.services.sunshine.serviceConfig = {
-    Environment = [
-      "DISPLAY=:0"
-      "XAUTHORITY=/home/mihai/.Xauthority"
-    ];
+  # Custom System Service mimicking the x11vnc config
+  systemd.services.sunshine = {
+    description = "Sunshine server";
+    after = [ "graphical.target" ];
+    wantedBy = [ "graphical.target" ];
+    serviceConfig = {
+      ExecStart = "${config.security.wrapperDir}/sunshine";
+      Restart = "on-failure";
+      RestartSec = "5s";
+      User = "mihai";
+      Environment = [
+        "DISPLAY=:0"
+        "XAUTHORITY=/home/mihai/.Xauthority"
+      ];
+    };
   };
 
   # --- SERVICES ---
@@ -267,14 +277,14 @@
     pavucontrol
     amneziawg-tools
     (pkgs.writeShellScriptBin "vpn-toggle" ''
-      if ${pkgs.iproute2}/bin/ip rule | grep -q 'lookup 51820'; then
-        sudo ${pkgs.iproute2}/bin/ip rule del table 51820
-        sudo ${pkgs.iproute2}/bin/ip rule del table main suppress_prefixlength 0
-        ${pkgs.libnotify}/bin/notify-send "VPN Routing Disabled" "Internet is now using the local network." || true
+      if /run/current-system/sw/bin/ip rule | grep -q 'lookup 51820'; then
+        sudo /run/current-system/sw/bin/ip rule del table 51820 || true
+        sudo /run/current-system/sw/bin/ip rule del table main suppress_prefixlength 0 || true
+        echo "VPN Routing Disabled - Internet is now using the local network."
       else
-        sudo ${pkgs.iproute2}/bin/ip rule add not fwmark 51820 table 51820
-        sudo ${pkgs.iproute2}/bin/ip rule add table main suppress_prefixlength 0
-        ${pkgs.libnotify}/bin/notify-send "VPN Routing Enabled" "Internet is routed through the VPN." || true
+        sudo /run/current-system/sw/bin/ip rule add not fwmark 51820 table 51820 || true
+        sudo /run/current-system/sw/bin/ip rule add table main suppress_prefixlength 0 || true
+        echo "VPN Routing Enabled - Internet is routed through the VPN."
       fi
     '')
     x11vnc
@@ -284,7 +294,10 @@
     {
       users = [ "mihai" ];
       commands = [
-        { command = "${pkgs.iproute2}/bin/ip"; options = [ "NOPASSWD" ]; }
+        { command = "/run/current-system/sw/bin/ip"; options = [ "NOPASSWD" ]; }
+        { command = "/run/current-system/sw/bin/systemctl start sunshine.service"; options = [ "NOPASSWD" ]; }
+        { command = "/run/current-system/sw/bin/systemctl stop sunshine.service"; options = [ "NOPASSWD" ]; }
+        { command = "/run/current-system/sw/bin/systemctl restart sunshine.service"; options = [ "NOPASSWD" ]; }
       ];
     }
   ];
