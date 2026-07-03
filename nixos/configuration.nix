@@ -280,11 +280,11 @@
       if /run/current-system/sw/bin/ip rule | grep -q 'lookup 51820'; then
         sudo /run/current-system/sw/bin/ip rule del table 51820 || true
         sudo /run/current-system/sw/bin/ip rule del table main suppress_prefixlength 0 || true
-        echo "VPN Routing Disabled - Internet is now using the local network."
+        echo "VPN Routing Disabled - VPN-ul este acum oprit."
       else
         sudo /run/current-system/sw/bin/ip rule add not fwmark 51820 table 51820 || true
         sudo /run/current-system/sw/bin/ip rule add table main suppress_prefixlength 0 || true
-        echo "VPN Routing Enabled - Internet is routed through the VPN."
+        echo "VPN Routing Enabled - VPN-ul este acum pornit."
       fi
     '')
     x11vnc
