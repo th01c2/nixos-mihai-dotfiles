@@ -4,6 +4,7 @@
     ./hardware-configuration.nix
     ./bash_configuration.nix
     ../config/themes/stylix.nix
+    ./hyprland.nix
   ];
 
   # --- BOOT & KERNEL ---
@@ -13,7 +14,7 @@
       efi.canTouchEfiVariables = true;
       timeout = 0;
     };
-    
+
     plymouth = {
       enable = true;
       theme = lib.mkForce "rings_2";
@@ -33,7 +34,7 @@
     ];
     bootspec.enable = true;
     binfmt.emulatedSystems = [ "aarch64-linux" ];
-    
+
     consoleLogLevel = 0;
     initrd.verbose = false;
     kernelParams = [
@@ -52,9 +53,6 @@
 
   # --- NVIDIA ---
   services.xserver.videoDrivers = [ "nvidia" ];
-  services.xserver.deviceSection = ''
-    Driver "nvidia"
-  '';
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
@@ -72,36 +70,28 @@
     LIBVA_DRIVER_NAME = "nvidia";
   };
 
-  # --- WINDOW MANAGER, DESKTOP & LOGIN ---
-  services.xserver.enable = true;
-  services.xserver.windowManager.bspwm.enable = true;
-
+  # --- DESKTOP & LOGIN ---
   # KDE Plasma desktop for olesea
   services.desktopManager.plasma6.enable = true;
 
-  services.xserver.displayManager.startx.enable = true;
-
-  # greetd display manager with tuigreet — auto-routes sessions by username
-  services.greetd = let
-    desktops = config.services.displayManager.sessionData.desktops;
-    session-router = pkgs.writeShellScript "session-router" ''
-      case "$USER" in
-        olesea)
-          exec ${pkgs.kdePackages.plasma-workspace}/bin/startplasma-wayland
-          ;;
-        *)
-          export XAUTHORITY="$HOME/.Xauthority"
-          exec ${pkgs.xorg.xinit}/bin/startx ${pkgs.bspwm}/bin/bspwm -- :0 vt"$XDG_VTNR" -auth "$HOME/.Xauthority"
-          ;;
-      esac
-    '';
-  in {
-    enable = true;
-    settings.default_session = {
-      command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --user-menu --cmd ${session-router}";
-      user = "greeter";
-    };
+services.greetd = let
+  session-router = pkgs.writeShellScript "session-router" ''
+    case "$USER" in
+      olesea)
+        exec ${pkgs.kdePackages.plasma-workspace}/bin/startplasma-wayland
+        ;;
+      *)
+        exec ${pkgs.hyprland}/bin/Hyprland
+        ;;
+    esac
+  '';
+in {
+  enable = true;
+  settings.default_session = {
+    command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --user-menu --cmd ${session-router}";
+    user = "greeter";
   };
+};
 
   # --- XDG PORTAL ---
   xdg.portal = {
@@ -112,7 +102,7 @@
     ];
     config.common.default = [ "gtk" ];
   };
- 
+
   programs.nix-ld.enable = true;
 
   systemd.services.NetworkManager-wait-online.enable = false;
@@ -136,9 +126,8 @@
     };
   };
 
-
   systemd.network.wait-online.enable = true;
-  
+
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 22 5900 47984 47989 47990 48010 ];
@@ -153,19 +142,9 @@
 
   users.users.mihai = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "video" "dialout" "uinput" "render" ];
+    extraGroups = [ "wheel" "networkmanager" "video" "audio" "dialout" "uinput" "render" ];
     packages = with pkgs; [
       inputs.prismlauncher-cracked.packages.${pkgs.stdenv.hostPlatform.system}.prismlauncher
-      picom
-      bspwm
-      sxhkd
-      dmenu
-      rofi
-      polybarFull
-      feh
-      xinit
-      xclip
-      maim
       alacritty
       gruvbox-plus-icons
       discord
@@ -173,18 +152,7 @@
       telegram-desktop
       steam
       mpv
-      xclicker
       android-tools
-
-      # SSH session launcher
-      (pkgs.writeShellScriptBin "start-sunshine" ''
-        echo "Killing tuigreet..."
-        sudo systemctl stop greetd
-        sleep 1
-        echo "Starting Mihai's bspwm session..."
-        sudo systemd-run --unit=mihai-ssh-session --uid=mihai --property=PAMName=login --property=TTYPath=/dev/tty7 --property=StandardInput=tty startx /run/current-system/sw/share/xsessions/none+bspwm.desktop -- vt7
-        echo "Sunshine is now active on the host!"
-      '')
     ];
   };
 
@@ -200,14 +168,13 @@
   # --- SUNSHINE HOST ---
   services.sunshine = {
     enable = true;
-    autoStart = false; # Disabled user service to use custom system service below
+    autoStart = false;
     capSysAdmin = true;
     openFirewall = true;
     package = pkgs.sunshine.override { cudaSupport = true; };
   };
   hardware.uinput.enable = true;
 
-  # Custom System Service mimicking the x11vnc config
   systemd.services.sunshine = {
     description = "Sunshine server";
     after = [ "graphical.target" ];
@@ -287,7 +254,6 @@
         echo "VPN Routing Enabled - VPN-ul este acum pornit."
       fi
     '')
-    x11vnc
   ];
 
   security.sudo.extraRules = [
@@ -310,18 +276,6 @@
      };
   };
   programs.fuse.userAllowOther = true;
-
-  # --- SYSTEMD SERVICES ---
-  # The VNC service has been completely removed as requested since tuigreet cannot be captured over VNC.
-
-  # --- USER SERVICES ---
-  systemd.user.services.audiosource = {
-    description = "Android Phone Microphone";
-    wantedBy = [ "default.target" ];
-    path = with pkgs; [ android-tools pulseaudio python3 bash ];
-    serviceConfig = {
-      ExecStart = "${pkgs.bash}/bin/bash /home/mihai/audiosource run";
-      Restart = "always";
-    };
-  };
+  programs.hyprlock.enable = true;
+  programs.gpu-screen-recorder.enable = true;
 }

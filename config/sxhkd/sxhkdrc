@@ -31,3 +31,16 @@ super + shift + {1-9,0}
 # Screenshot – select area (saved to ~/Screenshots + clipboard)
 super + Print
     mkdir -p ~/Screenshots && maim -s | tee ~/Screenshots/screenshot_$(date +%Y-%m-%d_%H-%M-%S).png | xclip -selection clipboard -t image/png
+# Volume control
+XF86AudioRaiseVolume
+	wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+
+XF86AudioLowerVolume
+	wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+
+XF86AudioMute
+	wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+
+# Optional: Microphone mute
+XF86AudioMicMute
+	wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle

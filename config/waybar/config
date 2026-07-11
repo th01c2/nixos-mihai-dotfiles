@@ -1,0 +1,182 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 30,
+
+    "modules-left": [
+    "hyprland/workspaces",
+	"hyprland/window"
+    ],
+
+    "modules-center": [
+	"clock#date",
+	"clock#time"
+    ],
+    
+    "modules-right": [
+	"power-profiles-daemon",
+	"pulseaudio",
+    "memory",
+    "cpu",
+    "custom/multi_temp",
+    "battery",
+    "network",
+    "bluetooth",
+    "custom/notification",
+    "custom/recorder_status"
+    ],
+
+
+    // -------------------------------------------------------------------------
+    // Modules
+    // -------------------------------------------------------------------------
+
+     "battery": {
+        "interval": 3,
+        "states": {
+            "warning": 30,
+            "critical": 15,
+            "allign": 0
+        },
+        "format": "{icon}{capacity}%",
+        "format-discharging": "{icon}{capacity}%",
+        "format-charging": "󰂄{capacity}%",
+        "format-icons": [
+           "󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"
+        ]
+    },
+    "bluetooth": {
+         "interval": 3,
+         "format-on": "󰂯",
+         "format-off": "󰂲",
+	 "format-disabled": "󰂲",
+	 "format-connected": "󰂯",
+         "exec": "blueman-manager",
+         "tooltip": true,
+         "on-click": "blueman-manager"
+    },
+
+    "network": {
+        "interval": 3,
+        "format-wifi": "{icon}",
+	"format-ethernet": "󰈀",
+         "format-disconnected": "󰤭",
+         "format-icons": ["󰤟", "󰤢", "󰤥", "󰤨"],
+         "tooltip": true,
+         "tooltip-format": "{essid} - {ifname} - {ipaddr}",
+	 "on-click":"foot -e nmtui"
+    },
+
+    "clock#time": {
+        "interval": 1,
+        "format": " {:%H:%M:%S}",
+        "tooltip": false
+    },
+
+    "clock#date": {
+      "interval": 10,
+      "format": "   {:%e %b %Y}", // Icon: calendar-alt
+      "tooltip-format": "{:%e %B %Y}"
+    },
+
+    "cpu": {
+        "interval": 3,
+        "format": " {usage}%", // Icon: microchip
+        "states": {
+          "warning": 70,
+          "critical": 90
+        }
+    },
+
+    "memory": {
+        "interval": 3,
+        "format": "{}%", // Icon: memory
+        "states": {
+            "warning": 70,
+            "critical": 90
+        }
+    },
+
+    "hyprland/window": {
+        "format": " {}",
+        "max-length": 40
+    },
+
+    "hyprland/workspaces": {
+            "format": "{icon}",
+            "format-icons": {
+                "active": "",
+                "default": "",
+                "empty": ""
+            },
+            "persistent-workspaces": {
+                "*": [ 1,2,3,4,5 ]
+            }
+        },
+
+    "pulseaudio": {
+        //"scroll-step": 1,
+        "format": "{icon} {volume}%",
+        "format-bluetooth": "{icon} {volume}%",
+        "format-muted": "",
+        "format-icons": {
+            "headphones": "",
+            "handsfree": "",
+            "headset": "",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["", ""]
+        },
+        "on-click": "pavucontrol"
+    },
+	"custom/multi_temp": {
+    	   "format": " {}",
+    	   "interval": 5,
+   	    "return-type": "json",
+   	    "exec": "CPU_PATH=$(grep -l 'k10temp' /sys/class/hwmon/hwmon*/name | sed 's/name/temp1_input/'); GPU_PATH=$(grep -l 'amdgpu' /sys/class/hwmon/hwmon*/name | sed 's/name/temp1_input/'); CPU_TEMP=$(($(cat $CPU_PATH) / 1000)); GPU_TEMP=$(($(cat $GPU_PATH) / 1000)); echo \"{\\\"text\\\": \\\"$CPU_TEMP°C | $GPU_TEMP°C\\\", \\\"tooltip\\\": \\\"CPU: $CPU_TEMP°C\\\\nGPU: $GPU_TEMP°C\\\"}\"",
+   	    "tooltip": true
+   },
+ 
+    "custom/recorder_status": {
+      "format": "{}",
+      "tooltip": false,
+      "interval": 2,
+      "exec": "if pgrep gpu-screen-rec > /dev/null; then echo '{\"text\": \"🔴\", \"class\": \"recording\"}'; else echo '{\"text\": \"\", \"class\": \"not-recording\"}'; fi",
+      "on-click": "if pgrep gpu-screen-rec > /dev/null; then pkill -SIGINT gpu-screen-rec; else gpu-screen-recorder -w screen -f 60 -a default_output -c mp4 -o ~/Videos/recording_$(date +%Y%m%d_%H%M%S).mp4 & fi",
+      "return-type": "json"
+    },
+
+    "custom/notification": {
+    "tooltip": true,
+    "format": "<span size='13pt'>{icon} </span>",
+    "format-icons": {
+      "notification": "󱅫",
+      "none": "󰂜",
+      "dnd-notification": "󰂠",
+      "dnd-none": "󰪓",
+      "inhibited-notification": "󰂛",
+      "inhibited-none": "󰪑",
+      "dnd-inhibited-notification": "󰂛",
+      "dnd-inhibited-none": "󰪑"
+    },
+    "return-type": "json",
+    "exec-if": "which swaync-client",
+    "exec": "swaync-client -swb",
+    "on-click": "swaync-client -t -sw",
+    "on-click-right": "swaync-client -d -sw",
+    "escape": true
+  },
+
+    "power-profiles-daemon": {
+	"format": "{icon}",
+	"tooltip-format": "Power profile: {profile}\nDriver: {driver}",
+	"tooltip": true,
+	"format-icons": {
+	"default": "",
+	"performance": "",
+	"balanced": "",
+	"power-saver": ""
+      }
+    }
+}

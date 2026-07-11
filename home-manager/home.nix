@@ -67,11 +67,27 @@
     Categories=System;
   '';
 
-  ".config/bspwm/bspwmrc".source = ../config/bspwm/bspwmrc;
-  ".config/sxhkd/sxhkdrc".source = ../config/sxhkd/sxhkdrc;
-  ".config/rofi/config.rasi".source = ../config/rofi/config.rasi;
-  ".config/polybar/config.ini".source = ../config/polybar/config.ini;
-  ".config/polybar/launch.sh".source = ../config/polybar/launch.sh;
+    # Hyprland Config 
+    ".config/hypr/hyprland.conf".source = ../config/hypr/hyprland.conf;
+
+    # Hyprlock Config
+    ".config/hypr/hyprlock.conf".source = ../config/hypr/hyprlock.conf;
+
+    # Hypridle Config
+    ".config/hypr/hypridle.conf".source = ../config/hypr/hypridle.conf;
+
+    # Hyprpaper Config
+    ".config/hypr/hyprpaper.conf".source = ../config/hypr/hyprpaper.conf;
+
+     # Waybar Config
+    ".config/waybar/config".source = ../config/waybar/config;
+    ".config/waybar/style.css".source = ../config/waybar/style.css;
+
+    # Foot Terminal Config
+    ".config/foot/foot.ini".source = ../config/foot/foot.ini;
+
+     # Fuzzel Config file
+    ".config/fuzzel/fuzzel.ini".source = ../config/fuzzel/fuzzel.ini;
 };
 
   programs.home-manager.enable = true;
